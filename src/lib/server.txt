@@ -1,0 +1,8 @@
+DATABASE_URL=postgresql://postgres:mahbubul@localhost:5432/buyoro?schema=public
+NODE_ENV=development
+PORT = 5000
+ACCESS_TOKEN_SECRET=sdfghjklvbnxcvbnrfghcvbnrtyhcvbn
+REFRESH_TOKEN_SECRET=sdfghjklvbnxcvbnrfghcvbnrtyhcvbnvbnghjk
+PASSWORD_RESET_TOKEN_SECRET=sdfghjklvbnxcvbnrfghcvbnrtewferterterteryhcvbnvbnghjk
+MAIL_SENDER_ADDRESS = mahbubulhasan604@gmail.com
+MAIL_PASSWORD = ziiv plvl iyms dkmf
