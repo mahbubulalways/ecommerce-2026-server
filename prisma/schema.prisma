@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String      @id @default(uuid())
+  email       String      @unique
+  phoneNumber String      @unique
+  password    String
+  role        USER_ROLE   @default(CONSUMER)
+  status      USER_STATUS @default(INACTIVE)
+  emailCode   String?
+  emailExpiry DateTime?
+  lastLogin   DateTime?
+  isVerified  Boolean     @default(false)
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  admins      Admin[]
+
+  @@map("users")
+}
+
+model Admin {
+  id        String    @id @default(uuid())
+  userId    String
+  name      String
+  adminRole AdminRole @default(STAFF)
+  isDeleted Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("admins")
+}
+
+model Brand {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  logo        String?
+  description String?
+  website     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  slug        String
+  products    Product[]
+
+  @@map("brands")
+}
+
+// GLOBAL
+model Category {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  slug     String
+  parentId String?
+  image    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryToChildren", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToChildren")
+
+  products                        Product[]
+  categoryToSpecificationSections CategoryToSpecificationSection[]
+
+  @@map("categories")
+}
+
+// SPECIFICATION SECTION (GLOBAL)
+model SpecificationSection {
+  id                              String                           @id @default(uuid())
+  name                            String
+  sectionSpecificationKeys        SectionSpecificationKey[]
+  createdAt                       DateTime                         @default(now())
+  updatedAt                       DateTime                         @updatedAt
+  categoryToSpecificationSections CategoryToSpecificationSection[]
+  productSpecifications           ProductSpecification[]
+}
+
+//  CATEGORY AND SPECIFICATION JOINING TABLE
+model CategoryToSpecificationSection {
+  categoryId             String
+  specificationSectionId String
+
+  category             Category             @relation(fields: [categoryId], references: [id])
+  specificationSection SpecificationSection @relation(fields: [specificationSectionId], references: [id])
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@id([categoryId, specificationSectionId])
+  @@map("CategoryToSpecificationSection")
+}
+
+//?? SPECIFICATION GLOBAL
+model SpecificationKey {
+  id                       String                    @id @default(uuid())
+  name                     String
+  type                     String?
+  unit                     String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  sectionSpecificationKeys SectionSpecificationKey[]
+  productSpecifications    ProductSpecification[]
+}
+
+// SPECIFICATION AND SPECIFICATION KEY JOINING TABLE
+model SectionSpecificationKey {
+  id        String @id @default(uuid())
+  sectionId String
+  keyId     String
+
+  section   SpecificationSection @relation(fields: [sectionId], references: [id])
+  key       SpecificationKey     @relation(fields: [keyId], references: [id])
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@unique([sectionId, keyId])
+}
+
+// PRODUCT GLOBAL
+model Product {
+  id                    String                 @id @default(uuid())
+  name                  String
+  categoryId            String
+  price                 Float
+  description           String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  brandId               String?
+  discount              Float?
+  images                String[]
+  isFeatured            Boolean                @default(false)
+  isPublished           Boolean                @default(false)
+  sku                   String?                @unique
+  slug                  String
+  status                PRODUCT_STATUS         @default(IN_STOCK)
+  stock                 Int                    @default(0)
+  thumbnail             String?
+  productSpecifications ProductSpecification[]
+  brand                 Brand?                 @relation(fields: [brandId], references: [id])
+  category              Category               @relation(fields: [categoryId], references: [id])
+
+  @@map("products")
+}
+
+// PRODUCT SPECIFICATION KEY JOINING TABLE
+model ProductSpecification {
+  id        String               @id @default(uuid())
+  productId String
+  specId    String
+  value     String
+  sectionId String
+  section   SpecificationSection @relation(fields: [sectionId], references: [id])
+  product   Product              @relation(fields: [productId], references: [id])
+  spec      SpecificationKey     @relation(fields: [specId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, specId])
+  @@map("productSpecifications")
+}
+
+// ATTRIBUTE GROUP
+// model AttributeGroup {
+//   id         String      @id @default(uuid())
+//   name       String
+//   attributes Attribute[]
+//   createdAt  DateTime    @default(now())
+//   updatedAt  DateTime    @updatedAt
+// }
+
+// // ATTRIBUTES 
+// model Attribute {
+//   id        String                  @id @default(uuid())
+//   name      String
+//   groupId   String
+//   group     AttributeGroup          @relation(fields: [groupId], references: [id])
+//   values    ProductAttributeValue[]
+//   createdAt DateTime                @default(now())
+//   updatedAt DateTime                @updatedAt
+// }
+
+// // PRODUCT AND ATTRIBUTE JOINING TABLE
+// model ProductAttributeValue {
+//   id    String @id @default(uuid())
+//   value String
+
+//   productId   String
+//   attributeId String
+
+//   product   Product   @relation(fields: [productId], references: [id])
+//   attribute Attribute @relation(fields: [attributeId], references: [id])
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+// }
+
+// ENUM
+enum USER_ROLE {
+  ADMIN
+  SUPER_ADMIN
+  CONSUMER
+}
+
+enum USER_STATUS {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+}
+
+enum PRODUCT_STATUS {
+  IN_STOCK
+  STOCK_OUT
+}
